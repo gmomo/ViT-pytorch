@@ -137,6 +137,27 @@ def valid(args, model, writer, test_loader, global_step):
     writer.add_scalar("test/accuracy", scalar_value=accuracy, global_step=global_step)
     return accuracy
 
+def test(args, model):
+    """Test the model"""
+    if args.local_rank in [-1, 0]:
+        os.makedirs(args.output_dir, exist_ok=True)
+        writer = SummaryWriter(log_dir=os.path.join("test-logs", args.name))
+
+    # Prepare test dataset
+    _, test_loader = get_loader(args)
+    logger.info("***** Running testing *****")
+    logger.info("  Num test examples = %d", len(test_loader.dataset))
+    logger.info("  Instantaneous batch size per GPU = %d", args.eval_batch_size)
+
+    # Run testing code
+    set_seed(args)  # Added here for reproducibility (even between python 2 and 3)
+    global_step = 0
+    accuracy = valid(args, model, writer, test_loader, global_step)
+
+    if args.local_rank in [-1, 0]:
+        writer.close()
+    logger.info("End Testing!")
+
 
 def train(args, model):
     """ Train the model """
@@ -205,10 +226,12 @@ def train(args, model):
 
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 losses.update(loss.item()*args.gradient_accumulation_steps)
+
                 if args.fp16:
                     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
                 else:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+
                 scheduler.step()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -217,9 +240,11 @@ def train(args, model):
                 epoch_iterator.set_description(
                     "Training (%d / %d Steps) (loss=%2.5f)" % (global_step, t_total, losses.val)
                 )
+
                 if args.local_rank in [-1, 0]:
                     writer.add_scalar("train/loss", scalar_value=losses.val, global_step=global_step)
                     writer.add_scalar("train/lr", scalar_value=scheduler.get_lr()[0], global_step=global_step)
+
                 if global_step % args.eval_every == 0 and args.local_rank in [-1, 0]:
                     accuracy = valid(args, model, writer, test_loader, global_step)
                     if best_acc < accuracy:
@@ -229,6 +254,7 @@ def train(args, model):
 
                 if global_step % t_total == 0:
                     break
+
         losses.reset()
         if global_step % t_total == 0:
             break
@@ -242,9 +268,10 @@ def train(args, model):
 def main():
     parser = argparse.ArgumentParser()
     # Required parameters
+    parser.add_argument('--test', action=argparse.BooleanOptionalAction)
     parser.add_argument("--name", required=True,
                         help="Name of this run. Used for monitoring.")
-    parser.add_argument("--dataset", choices=["cifar10", "cifar100"], default="cifar10",
+    parser.add_argument("--dataset", choices=["cifar10", "cifar100", "hymenoptera"], default="cifar10",
                         help="Which downstream task.")
     parser.add_argument("--model_type", choices=["ViT-B_16", "ViT-B_32", "ViT-L_16",
                                                  "ViT-L_32", "ViT-H_14", "R50-ViT-B_16"],
@@ -320,8 +347,11 @@ def main():
     # Model & Tokenizer Setup
     args, model = setup(args)
 
-    # Training
-    train(args, model)
+    # Test or train
+    if args.test:
+        test(args, model)
+    else:
+        train(args, model)
 
 
 if __name__ == "__main__":
