@@ -3,11 +3,11 @@ Pytorch reimplementation of [Google's repository for the ViT model](https://gith
 
 This paper show that Transformers applied directly to image patches and pre-trained on large datasets work really well on image recognition task.
 
-![fig1](./img/figure1.png)
+![fig1](docs/img/figure1.png)
 
 Vision Transformer achieve State-of-the-Art in image recognition task with standard Transformer encoder and fixed-size patches. In order to perform classification, author use the standard approach of adding an extra learnable "classification token" to the sequence.
 
-![fig2](./img/figure2.png)
+![fig2](docs/img/figure2.png)
 
 
 ## Usage
@@ -32,7 +32,7 @@ wget https://storage.googleapis.com/vit_models/imagenet21k+imagenet2012/{MODEL_N
 ```
 python3 train.py --name cifar10-100_500 --dataset cifar10 --model_type ViT-B_16 --pretrained_dir checkpoint/ViT-B_16.npz
 ```
-CIFAR-10 and CIFAR-100 are automatically download and train. In order to use a different dataset you need to customize [data_utils.py](./utils/data_utils.py).
+CIFAR-10 and CIFAR-100 are automatically download and train. In order to use a different dataset you need to customize [data_utils.py](src/utils/data_utils.py).
 
 The default batch size is 512. When GPU memory is insufficient, you can proceed with training by adjusting the value of `--gradient_accumulation_steps`.
 
@@ -87,13 +87,23 @@ To verify that the converted model weight is correct, we simply compare it with 
 | imagenet21k | ViT-B_16 | CIFAR-100 |         1000/100          |    0.9115     |     0.9216     |
 
 
+### Testing on Hymenopetra dataset
+|          model           |             val loss              |              val acc               | total_steps/warmup_steps |
+|:------------------------:|:---------------------------------:|:----------------------------------:|:------------------------:|
+|         ViT-B_16         |              0.07024              |              0.98039               |           50/5           |
+|         ViT-L_16         |              0.05515              |              0.98693               | 50/5 |  
+|         ViT-B_32         |              0.09182              |              0.973856              | 50/5 |
+|         ViT-L_32         |              0.06003              |              0.986928              | 50/5 |
+|       R50-ViT-B_16       |              0.15019              |              0.94771               | 50/5 |
+| ViT-B_32 (imagenet 2012) |                 0.08186                  |                  0.95425                  | 50/5 |
+
 ## Visualization
 The ViT consists of a Standard Transformer Encoder, and the encoder consists of Self-Attention and MLP module.
 The attention map for the input image can be visualized through the attention score of self-attention.
 
 Visualization code can be found at [visualize_attention_map](./visualize_attention_map.ipynb).
 
-![fig3](./img/figure3.png)
+![fig3](docs/img/figure3.png)
 
 
 ## Reference
