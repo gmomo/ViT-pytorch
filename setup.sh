@@ -14,7 +14,7 @@ wget https://storage.googleapis.com/vit_models/imagenet21k/${MODEL_NAME}.npz -P 
 #wget https://storage.googleapis.com/vit_models/imagenet21k+imagenet2012/${MODEL_NAME}.npz -P checkpoint
 
 # Train on new dataset
-python3 train.py \
+python3 src/train-test.py \
   --name 2012_B_32_1 \
   --dataset hymenoptera \
   --model_type ViT-B_32 \
@@ -29,7 +29,7 @@ python3 train.py \
 
 
 # Test
-python3 train.py \
+python3 src/train-test.py \
   --name test1 \
   --model_type ${MODEL_NAME} \
   --pretrained_dir checkpoint/${MODEL_NAME}.npz \
